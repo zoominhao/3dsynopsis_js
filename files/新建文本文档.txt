@@ -1,0 +1,92 @@
+directionResult
+[
+ Lb
+  [
+    destination: "Mountain View, CA"
+	origin: "San Francisco, CA"
+	travelMode: "DRIVING"
+  ]
+ route
+  [
+    {
+	  legs
+	  [
+	    {
+		   distance:  text: "38.7 mi", value: 62252 (单位 m)
+		   duration:  text: "41mins",  value: 2486 (单位 s)
+		   end_address: "Mountain View, CA, USA"
+		   end_location: latlng -122.0837841 , 37.386026 
+		   start_address: "San Francisco, CA, USA"
+		   start_location: latlng -122.41949260000001, 37.7749901
+		   steps:
+		   [
+		     {
+			    distance: text: "0.1 mi", value: 238
+			    duration: text: "1 min", value: 31
+				end_location: latlng -122.4175836, 37.7765041
+				end_point: point -122.4175836, 37.7765041
+				instructions: inner HTML "Head <b>northeast</b> on <b>Market St</b> tow..."
+				lat_lngs:
+				[
+					{-122.41949000000001, 37.77499},          0
+					{-122.41934, 37.775110000000005},         1
+					{-122.41921, 37.77521},                   2
+					{-122.41907, 37.775330000000004},  		  3
+					{-122.41899000000001, 37.77539},		  4
+					{-122.41872000000001, 37.77561},		  5
+					{-122.41861000000002, 37.7757},			  6
+					{-122.41853, 37.775760000000005},		  7
+					{-122.41758000000002, 37.776500000000006} 8
+					length: 9
+				]
+				path:
+				[
+				 	{-122.41949000000001, 37.77499},          0
+					{-122.41934, 37.775110000000005},         1
+					{-122.41921, 37.77521},                   2
+					{-122.41907, 37.775330000000004},  		  3
+					{-122.41899000000001, 37.77539},		  4
+					{-122.41872000000001, 37.77561},		  5
+					{-122.41861000000002, 37.7757},			  6
+					{-122.41853, 37.775760000000005},		  7
+					{-122.41758000000002, 37.776500000000006} 8
+					length: 9
+				]
+				start_location: lat_lng -122.41949260000001, 37.7749901
+				start_point: -122.41949260000001, 37.7749901
+				travel_mode: "DRIVING"
+				
+			 },
+			 {
+			    distance: text: "0.6 mi", value: 973
+			    duration: text: "2 mins", value: 102
+				end_location: latlng -122.40974849999998, 37.7703662
+				end_point: point -122.40974849999998, 37.7703662
+				instructions: inner HTML "Turn <b>right</b> onto <b>10th St</b>"
+				lat_lng: ...
+				path:
+				[
+				 	{-122.41758000000002, 37.776500000000006},         0
+					{-122.41756000000001, 37.776500000000006},         1
+					{-122.41752000000001, 37.77649},                   2
+					...
+					{-122.40975000000002, 37.77037},                  19
+					length: 20
+				]
+				start_location: lat_lng -122.4175836, 37.7765041
+				start_point: -122.4175836, 37.7765041
+				travel_mode: "DRIVING"
+			 },
+			 ...
+			 length: 9
+		   ]
+		}
+	  ]
+	  
+	}
+  ]
+  status
+  [
+  "OK"
+  ]
+]

@@ -1,0 +1,85 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+  <title>3D Synopsis on Google Earth</title>
+  <link rel="shortcut icon" href="images/favicon.ico" type="image/x-icon">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+  <!-- API Key for code.google.com -->
+  <script type="text/javascript" src="http://www.google.com/jsapi?hl=en&key=ABQIAAAAwbkbZLyhsmTCWXbTcjbgbRSzHs7K5SvaUdm8ua-Xxy_-2dYwMxQMhnagaawTo7L1FE1-amhuQxIlXw"></script>
+  <link rel="stylesheet" href="css/index.css">
+  <script type="text/javascript" src="js/index.js"></script>
+  <script type="text/javascript" src="js/interest.js"></script>
+  <script type="text/javascript" src="js/driver.js"></script>
+  <script type="text/javascript" src="js/loadKml.js"></script>
+  <script type="text/javascript" src="lib/math3d.js"></script>
+  <script type="text/javascript" src="js/geplugin-helpers.js"></script>
+  <script type="text/javascript" src="js/simulator.js"></script>
+  
+  <script type="text/javascript">
+// <![CDATA[
+google.load("jquery", "1");
+google.load("maps", "3",{"other_params":"libraries=places&sensor=true&language=en"});
+google.load("earth", "1");
+
+function SY_init() {
+  $('#directions-form input').attr('disabled', 'disabled');
+  $('#simulator-form input').attr('disabled', 'disabled');
+  
+  google.earth.createInstance('earth', initSuccess, initFail);
+
+  $(window).resize(onresize);
+  onresize();
+}
+
+google.setOnLoadCallback(SY_init);
+// ]]>
+</script>
+</head>
+<body>
+<h1 align="center">3D Synopsis on Google Earth</h1>
+<table style="width: 100%; height: 400px;">
+<tr>
+  <td style="width: 200px" valign="top">
+    <table style="width: 200px">
+      <tr>
+        <td valign="top">
+          <form id="directions-form" onsubmit="return false;" action="get">
+            <fieldset>
+              <legend><font style="FONT-SIZE: 15pt; FONT-FAMILY: 华文行楷;" >Directions</font></legend>
+              <font style="FONT-SIZE: 10pt; FONT-FAMILY: 华文行楷;" >From:</font><br/>
+              <input type="text" id="from" value="San Francisco, CA"/><br/>
+              <font style="FONT-SIZE: 10pt; FONT-FAMILY: 华文行楷;" >To:</font><br/>
+              <input type="text" id="to" value="Mountain View, CA"/><br/>
+              <input type="image" src="images/search.png" onmousemove="this.src='images/search_over.png'" onmouseout="this.src='images/search.png'"  onclick="SY_Solve();" value="Solve!"/>
+            </fieldset>
+          </form>
+        </td>
+		</tr>
+		<tr style="height:10%;">
+        <td style="height: 10%;" valign="top">
+          <form id="simulator-form" onsubmit="return false;" action="get">
+            <fieldset style="height:60px;">
+              <legend><font style="FONT-SIZE: 15pt; FONT-FAMILY: 华文行楷;" >Simulator</font></legend>
+              <input type="image" src="images/reset.png" onmousemove="this.src='images/reset_over.png'" onmouseout="this.src='images/reset.png'"  onclick="SY_controlSimulator('reset');" value="Reset"/>&nbsp
+              <input type="image" src="images/start.png" onmousemove="this.src='images/start_over.png'" onmouseout="this.src='images/start.png'"   onclick="SY_controlSimulator('start');" value="Start"/>&nbsp
+              <input type="image" src="images/pause.png" onmousemove="this.src='images/pause_over.png'" onmouseout="this.src='images/pause.png'"   onclick="SY_controlSimulator('pause');" value="Pause"/>&nbsp
+            </fieldset>
+          </form>
+        </td>
+      </tr>
+    </table>
+    <div id="route-details"></div>
+  </td>
+  <td style="width: 67%" valign="top">
+    <div id="earth" style="border: 1px solid #000; height: 500px;"></div>
+  </td>
+  <td style="width: 33%" valign="top">
+    <div id="map" style="border: 1px solid #000; height: 500px;"></div>
+  </td>
+</tr>
+</table>
+
+
+</body>
+</html>
