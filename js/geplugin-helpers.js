@@ -34,6 +34,7 @@ limitations under the License.
  */
 function GEHelpers(ge) {
   this.ge = ge;
+  this.map = map;
 }
 
 /**
@@ -58,7 +59,7 @@ GEHelpers.prototype.createPointPlacemark = function(loc, opt_opts) {
   
   // Create style map for placemark
   if (opt_opts.standardIcon && !opt_opts.icon)
-    opt_opts.icon = '/images/google/' +
+    opt_opts.icon = 'https://raw.githubusercontent.com/zoominhao/3dsynopsis_js/master/images/google/' +
                     opt_opts.standardIcon + '.png';
   
   if (opt_opts.icon) {
@@ -196,6 +197,39 @@ GEHelpers.prototype.interpolateLoc = function(loc1, loc2, f) {
 }
 
 /**
+ * Calculates an intermediate heading, (100 * f)% between heading1 and heading2
+ * @param {number} heading1 The start heading
+ * @param {number} heading2 The end heading
+ * @return {number} An intermediate heading between heading1 and heading2
+ */
+GEHelpers.prototype.interpolateHeading = function(heading1, heading2, f) {
+   var nheading = this.fixAngle(heading1 + this.fixAngle(heading2 - heading1) * f);
+   return nheading;
+}
+
+/**
+ * Calculates an intermediate tilt, (100 * f)% between tilt1 and tilt2
+ * @param {number} tilt1 The start tilt
+ * @param {number} tilt2 The end tilt
+ * @return {number} An intermediate tilt between tilt1 and tilt2
+ */
+GEHelpers.prototype.interpolateTilt = function(tilt1, tilt2, f) {
+   var ntilt = tilt1 + (tilt2 - tilt1) * f;
+   return ntilt;
+}
+
+/**
+ * Calculates an intermediate altitude, (100 * f)% between altitude1 and altitude2
+ * @param {number} altitude1 The start altitude
+ * @param {number} altitude2 The end altitude
+ * @return {number} An intermediate altitude between altitude1 and altitude2
+ */
+GEHelpers.prototype.interpolateAlt = function(altitude1, altitude2, f) {
+   var naltitude = altitude1 + (altitude2 - altitude1) * f;
+   return naltitude;
+}
+
+/**
  * Gets the earth distance between two locations, factoring in ground altitudes
  * provided by the associated Google Earth plugin instance
  * @param {google.maps.LatLng} loc1 The first location
@@ -209,3 +243,10 @@ GEHelpers.prototype.distance = function(loc1, loc2) {
     this.ge.getGlobe().getGroundAltitude(loc2.lat(), loc2.lng())]);
   return V3.earthDistance(p1, p2);
 }
+
+//如果已给定了特定的方向、起点位置和行程距离（以米为单位），那么您可以使用 computeOffset() 来计算终点坐标。
+//利用google map 的 geometry library
+GEHelpers.prototype.DestLoc = function(loc1, dis, heading) {
+  return google.maps.geometry.spherical.computeOffset(loc1, dis, heading); 
+}
+

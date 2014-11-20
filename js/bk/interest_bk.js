@@ -90,7 +90,7 @@ function SY_Request() {
   };
   SY_directions.route(request, function(response, status) {
     if (status == google.maps.DirectionsStatus.OK) {
-      SY_directionsLoaded(response);
+      SY_buildPathStepArrays(response);
     }
 	else
 	{
@@ -99,74 +99,6 @@ function SY_Request() {
         '<span class="error">No directions found.</span>');
 	}
   });
-}
-
-/**
- * Initialization after directions are loaded
- */
-function SY_directionsLoaded(directionResult) {
-  // Directions data has loaded
-  $('#route-details').empty();
-  SY_display.setDirections(directionResult);  //search result display on map
-  
-  var route = directionResult.routes[0].legs[0];
-  var start = route.start_location;
-  var end = route.end_location;
-  var startaddress = route.start_address;
-  var endaddress = route.end_address;
-  SY_TotalDistance = route.distance.value;
-  // build the path and step arrays from the google.maps.Directions route
-  SY_buildPathStepArrays(directionResult);
-  
-  //clear placemark
-  SY_geHelpers.clearFeatures();
-  
-  SY_placemarks = {};
-  // create the starting point placemark
-  SY_placemarks['start'] = SY_geHelpers.createPointPlacemark(
-      start,{description: startaddress, standardIcon: 'grn-diamond'});
-  
-  // create the point placemarks for each step in the driving directions
-  for (var i = 0; i < SY_steps.length; i++) {
-    var step = SY_steps[i];
-    
-    var placemark = SY_geHelpers.createPointPlacemark(
-        step.loc, {description: step.desc, standardIcon: 'red-circle'});
-    
-    SY_placemarks['step-' + i] = placemark; 
-    
-    google.earth.addEventListener(placemark, 'click', function(event) {
-      // match up the placemark to its id in the dictionary to find out
-      // which step number it is
-      var id = '';
-      for (k in SY_placemarks)
-        if (SY_placemarks[k].equals(event.getTarget()))
-          id = k;
-      
-      var stepNum = parseInt(id.match(/step-(\d+)/)[1]);
-      
-      SY_flyToStep(stepNum);
-    });
-  }
-  
-  // create the ending point placemark
-  SY_placemarks['end'] = SY_geHelpers.createPointPlacemark(
-      end,{description: endaddress, standardIcon: 'grn-diamond'});
-  
-   //load sig logo
-  loadSigLogo();
-   //渲染路线
-  loadPath();
-
-  // build the left directions list
-  SY_buildDirectionsList(directionResult);
-  
-  // fly to the start of the route
-  SY_flyToLatLng(start);
-  
-  // enable the simulator controls
-  $('#simulator-form input').removeAttr('disabled');
-  
 }
 
 /**
@@ -205,14 +137,137 @@ function SY_buildPathStepArrays(directionResult) {
         distance: distance,
         // this segment's time duration is proportional to its length in
         // relation to the length of the step
-        duration: step.duration.value * distance / stepDistance
+        duration: step.duration.value * distance / stepDistance,
+		alt: 0
       });
     }
   }
-     SY_generateCon();
-     SY_generateSY();
+     SY_getElevationArrays(directionResult);
 }
 
+/**
+ * Generates elevation for SY_path arrays from the global SY_elevations
+ * instance
+ * 
+ * NOTE: only the first route is used
+ */
+ function SY_getElevationArrays(directionResult)
+ {
+    //Retrieve the locations and push it on the array
+	var seg = 500;
+	var num = parseInt(SY_path.length / seg);
+	if(SY_path.length > seg * num)
+	{
+	   num = num + 1;
+	   seg = Math.ceil(SY_path.length / num);
+	}
+	var locationsV = [];
+	for(var i = 0; i < num; ++i)
+	{
+	    var locations = [];
+		for(var j = i * seg; j < (i + 1) * seg; ++j)
+		{
+			if(j > SY_path.length - 1)
+			  break;
+			locations.push(SY_path[j].loc);  
+		}
+		locationsV[i] = locations;
+	}
+	
+	SY_getElevationCB(locationsV, 0, num, 0, directionResult);
+     
+ }
+ 
+  function SY_getElevationCB(locationsV, count, num, startcount, directionResult){
+      if(count >= num )
+	  {
+	     SY_directionsLoaded(directionResult);
+	     return;
+	  }
+	   
+       //Create a LocationElevationRequest object using the array's one value
+	 var positionalRequest = {
+        'locations': locationsV[count]
+        }
+	SY_elevations.getElevationForLocations(positionalRequest, function(results, status) {
+        if (status == google.maps.ElevationStatus.OK) {
+	      for(var i = 0; i < results.length; ++i)
+	      {
+		    SY_path[i + startcount].alt = results[i].elevation;
+	      }
+		    startcount += results.length;
+			count += 1;
+		    SY_getElevationCB(locationsV, count, num, startcount, directionResult);
+        } else {
+                alert("Elevation service failed due to: " + status);
+            }
+        }); 
+  }
+  
+
+  
+  /**
+ * Initialization after directions are loaded
+ */
+  function SY_directionsLoaded(directionResult) {
+    SY_display.setDirections(directionResult);  //search result display on map
+	
+	// Directions data has loaded
+    $('#route-details').empty();
+    var route = directionResult.routes[0].legs[0];
+    var start = route.start_location;
+	var end = route.end_location;
+	var startaddress = route.start_address;
+	var endaddress = route.end_address;
+    SY_TotalDistance = route.distance.value;
+    //clear placemark
+    SY_geHelpers.clearFeatures();
+    SY_placemarks = {};
+    // create the starting point placemark
+    SY_placemarks['start'] = SY_geHelpers.createPointPlacemark(
+        start,{description: startaddress, standardIcon: 'grn-diamond'});
+  
+    // create the point placemarks for each step in the driving directions
+    for (var i = 0; i < SY_steps.length; i++) {
+        var step = SY_steps[i];
+        var placemark = SY_geHelpers.createPointPlacemark(
+           step.loc, {description: step.desc, standardIcon: 'red-circle'});
+        SY_placemarks['step-' + i] = placemark; 
+        google.earth.addEventListener(placemark, 'click', function(event) {
+         // match up the placemark to its id in the dictionary to find out
+         // which step number it is
+         var id = '';
+         for (k in SY_placemarks)
+         if (SY_placemarks[k].equals(event.getTarget()))
+           id = k;
+      
+         var stepNum = parseInt(id.match(/step-(\d+)/)[1]);
+      
+         SY_flyToStep(stepNum);
+      });
+    }
+  
+     // create the ending point placemark
+     SY_placemarks['end'] = SY_geHelpers.createPointPlacemark(
+         end,{description: endaddress, standardIcon: 'grn-diamond'});
+  
+     //load sig logo
+     loadSigLogo();
+     //渲染路线
+     loadPath();
+
+     // build the left directions list
+     SY_buildDirectionsList(directionResult);
+  
+     // fly to the start of the route
+     SY_flyToLatLng(start);
+  
+     // enable the simulator controls
+     $('#simulator-form input').removeAttr('disabled'); 
+
+     //SY_generateCon();	 
+  }
+  
 /**
  * Generates the HTML elements for the left directions list
  * 

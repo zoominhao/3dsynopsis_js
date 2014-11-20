@@ -49,13 +49,12 @@ function loadSigLogo() {
    // build the route LineString; instead of creating a LineString using
   // pushLatLngAlt, which has some performance issues, we will construct a
   // KML blob and use parseKml() 
-  var lineStringKml = '<LineString><coordinates>\n';
-  
+  var lineStringKml = '<LineString><altitudeMode>relativeToGround</altitudeMode><coordinates>\n';
+  //https://developers.google.com/kml/documentation/kmlreference#linestring
   for (var i = 0; i < SY_path.length; i++)
     lineStringKml +=
         SY_path[i].loc.lng().toString() + ',' +
-        SY_path[i].loc.lat().toString() +
-        ',10\n';
+        SY_path[i].loc.lat().toString() + ',1 \n' ;
   
   lineStringKml += '</coordinates></LineString>';
   

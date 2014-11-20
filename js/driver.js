@@ -42,7 +42,20 @@ function SY_controlSimulator(command, opt_cb) {
       
       // create a SYSimulator object for the current SY_path array
       // on the DS_ge Earth instance
-      SY_simulator = new SYSimulator(SY_ge, SY_path, {
+	  var SY_CamPath = [];
+	  var SY_CarPath = [];
+	  var mode = $('#mode').val();
+	  if(mode == 1)
+	  {
+	     SY_CamPath = SY_conCamPath;
+		 SY_CarPath = SY_conCarPath;
+	  }
+	  else if(mode == 2)
+	  {
+	     SY_CamPath = SY_syCamPath;
+		 SY_CarPath = SY_syCarPath;
+	  }
+      SY_simulator = new SYSimulator(SY_ge, SY_CamPath, SY_CarPath, {
         // as the simulator runs, reposition the map on the right and the
         // car marker on the map, and update the status box on the bottom
         on_tick: function() {
@@ -107,6 +120,18 @@ function SY_controlSimulator(command, opt_cb) {
         SY_simulator.start();
       
       if (opt_cb) opt_cb();
+      break;
+	  
+	case 'slower':
+      if (SY_simulator && SY_simulator.options.speed > 0.125) {
+        SY_simulator.options.speed /= 2.0;
+      }
+      break;
+    
+    case 'faster':
+      if (SY_simulator && SY_simulator.options.speed < 32.0) {
+        SY_simulator.options.speed *= 2.0;
+      }
       break;
   }
 }

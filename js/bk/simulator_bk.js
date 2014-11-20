@@ -28,21 +28,12 @@ limitations under the License.
  /**
  * Constructs a simulator object
  * @param {Object} ge The Google Earth instance
- * @param {Array.<Object>} campath The path to simulate camera view, as an array of vertex
+ * @param {Array.<Object>} path The path to simulate, as an array of vertex
  *     objects of the form:
- *   {google.maps.LatLng} loc The cam location of vertex,
- *   {number} heading The heading of camera view
- *   {number} tilt The tilt of camera view
- *   {number} altitude The altitude of camera
- *   {number} duration The time duration before the next vertex, in seconds
- *   {number} distance The distance to the next vertex, in meters
- * @param {Array.<Object>} carpath The path to simulate car move, as an array of vertex
- *     objects of the form:
- *   {google.maps.LatLng} loc The car location of vertex,
+ *   {google.maps.LatLng} loc The vertex location of vertex,
  *   {number} step The index of the associated directions step
  *   {number} duration The time duration before the next vertex, in seconds
  *   {number} distance The distance to the next vertex, in meters
- *   {number} heading The heading of car orientation
  * @param {Object?} opt_opts An object with the following optional fields:
  *   {Function?} on_tick A callback function, called after one tick of the
  *       simulation completes
@@ -56,32 +47,29 @@ limitations under the License.
  // remote address, the local doesn't work
  SYSimulator.MODEL_URL = 'https://github.com/zoominhao/3dsynopsis_js/blob/master/files/smart.kmz?raw=true';  
  SYSimulator.TICK_SIM_MS = 66;
- //public vars, for map locate
+ //public vars
  SYSimulator.prototype.currentLoc = null;
- 
+
  //class SYSimulator
  function SYSimulator(ge, campath, carpath, opt_opts) {
   this.ge = ge;
-  this.carpath = carpath;
   this.campath = campath;
+  this.carpath = carpath;
   this.options = opt_opts || {};
   if (!this.options.speed)
     this.options.speed = 1.0;         //倍率,可在外部调用DS_simulator.options.speed /= 2.0; 调整速度
   
   this.currentLoc = this.carpath[0].loc;
-  
   // private vars
   this.geHelpers_ = new GEHelpers(ge);
   this.doTick_ = false;
-  this.pathIndex_ = 0;
+  this.pathIndex_ = 0;          //共用
   this.currentStep_ = -1;
   this.segmentTime_ = 0;
-  
-  this.curCarHeading_ = this.carpath[0].heading;
-  this.curCamLoc_ = this.campath[0].loc;
-  this.curCamHeading_ = this.campath[0].heading;
-  this.curCamTilt_ = this.campath[0].tilt;
-  this.curCamAltitude_ = this.campath[0].altitude;
+  this.lastCarPath_ = this.carpath[0];
+  this.lastCamPath_ = this.campath[0];
+  this.curCarPath_ = this.lastCarPath_;
+  this.curCamPath_ = this.lastCamPath_;
 }
 
 /**
@@ -119,7 +107,7 @@ SYSimulator.prototype.finishInitUI_ = function(kml, opt_cb) {
   }
   
   this.model = this.modelPlacemark.getGeometry();
-  this.model.setAltitudeMode(this.ge.ALTITUDE_RELATIVE_TO_GROUND);  //this.ge.ALTITUDE_ABSOLUTE,  ALTITUDE_RELATIVE_TO_GROUND
+  this.model.setAltitudeMode(this.ge.ALTITUDE_RELATIVE_TO_GROUND);
   
   this.ge.getFeatures().appendChild(this.modelPlacemark);
   
@@ -181,36 +169,40 @@ SYSimulator.prototype.stop = function() {
 }
 
 /**
- * Position the car model and make it look like it's driving towards a given
- * location and set the camera orientation and position including altitude
+ * drive the car the change the camera
  * @private
+ * @param {google.maps.LatLng} loc Location to move the car to
+ * @param {number} heading The direction the car should be facing
  */
 SYSimulator.prototype.drive_ = function() {
-  this.cardrive_();
-  this.camdrive_();
+   this.cardrive_();
+   this.camdrive_();
 }
 
 /**
  * Position the car model and make it look like it's driving towards a given
  * location
  * @private
+ * @param {google.maps.LatLng} loc Location to move the car to
+ * @param {number} heading The direction the car should be facing
  */
 SYSimulator.prototype.cardrive_ = function() {
-   
-  this.model.getLocation().setLatLngAlt(this.currentLoc.lat(), this.currentLoc.lng(), 0);
-  this.model.getOrientation().setHeading(this.curCarHeading_);
+  this.model.getLocation().setLatLngAlt(this.curCarPath_.loc.lat(), this.curCarPath_.loc.lng(), 0);
+  this.model.getOrientation().setHeading(this.curCarPath_.heading);
 }
 
 /**
  * Position the camera at the given location, slowly turning to eventually face
  * locFacing and zoom to an appropriate level for the current speed
  * @private
+ * @param {google.maps.LatLng} loc Location to move the car to
+ * @param {number} heading The direction the car should be facing
  */
 SYSimulator.prototype.camdrive_ = function() {
-	var curHeading;
+    var curHeading;
 	var curTilt;
 	var curAlt;
-	var sycamera = this.ge.getView().copyAsCamera(this.ge.ALTITUDE_RELATIVE_TO_GROUND);    //this.ge.ALTITUDE_RELATIVE_TO_GROUND);this.ge.ALTITUDE_ABSOLUTE
+	var sycamera = this.ge.getView().copyAsCamera(this.ge.ALTITUDE_ABSOLUTE);    //this.ge.ALTITUDE_RELATIVE_TO_GROUND);
     if(this.pathIndex_ != 0)
 	{
 	   //Camera 可包含介于0度与360度之间的倾斜值。0度表示指定点的正下方；90度表示与水平线齐平；180度则表示正对天空。 
@@ -220,20 +212,21 @@ SYSimulator.prototype.camdrive_ = function() {
 	}
 	else
 	{
-	    curHeading = this.campath[0].heading;
-		curTilt = this.campath[0].tilt;
-		curAlt = this.campath[0].altitude;
+	    curHeading = this.lastCamPath_.heading;
+		curTilt = this.lastCamPath_.tilt;
+		curAlt = this.lastCamPath_.altitude;
 	}
 	
      // 更新 Google 地球中的视图。
-	sycamera.setLatitude(this.curCamLoc_.lat());
-	sycamera.setLongitude(this.curCamLoc_.lng());
-    sycamera.setTilt(curTilt + this.getTiltMove_(curTilt, this.curCamTilt_));
-    sycamera.setHeading(curHeading + this.getHeadingMove_(curHeading, this.curCamHeading_));
-	sycamera.setAltitude(curAlt + (this.curCamAltitude_ - curAlt) * 0.2);
+	sycamera.setLatitude(this.curCamPath_.loc.lat());
+	sycamera.setLongitude(this.curCamPath_.loc.lng());
+    sycamera.setTilt(curTilt + this.getTiltMove_(curTilt, this.curCamPath_.tilt));
+    sycamera.setHeading(curHeading + this.getHeadingMove_(curHeading, this.curCamPath_.heading));
+	sycamera.setAltitude(curAlt + (this.curCamPath_.altitude - curAlt) * 0.2);
 
     this.ge.getView().setAbstractView(sycamera);
 }
+
 
 /**
  * Returns whether to turn left (-1) or right (1) to transition from a given
@@ -250,13 +243,6 @@ SYSimulator.prototype.getHeadingMove_ = function(heading1, heading2) {
   return (this.geHelpers_.fixAngle(heading2 - heading1) < 0) ? -1 : 1;
 }
 
-/**
- * Returns whether to turn down (-1) or up (1) to transition from a given
- * tilt/bearing to another
- * @private
- * @param {number} tilt1 Current tilt/bearing, in degrees
- * @param {number} tilt2 Desired tilt/bearing, in degrees
- */
 SYSimulator.prototype.getTiltMove_ = function(tilt1, tilt2){
 	if (Math.abs((tilt1) - (tilt2)) < 1)
     return tilt2 - tilt1;
@@ -264,24 +250,22 @@ SYSimulator.prototype.getTiltMove_ = function(tilt1, tilt2){
     return (this.geHelpers_.fixAngle(tilt2 - tilt1) < 0) ? -1 : 1;
 }
 
-/**
- * Calculates an intermediate proper value of heading, tilt, altitude, loc, 
- * @private
- * @param {number} f (100 * f)% between current and desired value
- */
 SYSimulator.prototype.syInterpolate_ = function(f)
 {
 	 // update the current location
 	 // car
     this.currentLoc = this.geHelpers_.interpolateLoc( this.carpath[this.pathIndex_].loc, this.carpath[this.pathIndex_ + 1].loc, f);
-    this.curCarHeading_ = this.carpath[this.pathIndex_].heading;
-	//camera
-    this.curCamLoc_ = this.geHelpers_.interpolateLoc( this.campath[this.pathIndex_].loc, this.campath[this.pathIndex_ + 1].loc, f);
-    this.curCamHeading_ = this.geHelpers_.interpolateHeading( this.campath[this.pathIndex_].heading, this.campath[this.pathIndex_ + 1].heading, f );
-    this.curCamTilt_ = this.geHelpers_.interpolateTilt( this.campath[this.pathIndex_].tilt, this.campath[this.pathIndex_ + 1].tilt, f );
-    this.curCamAltitude_ = this.geHelpers_.interpolateAlt( this.campath[this.pathIndex_].altitude, this.campath[this.pathIndex_ + 1].altitude, f );
-}
+    
+	this.curCarPath_ = this.carpath[this.pathIndex_];
+	this.curCarPath_.loc = this.currentLoc;
 
+	//camera
+	this.curCamPath_ = this.campath[this.pathIndex_];
+    this.curCamPath_.loc = this.geHelpers_.interpolateLoc( this.campath[this.pathIndex_].loc, this.campath[this.pathIndex_ + 1].loc, f);
+	this.curCamPath_.heading = this.geHelpers_.interpolateHeading( this.campath[this.pathIndex_].heading, this.campath[this.pathIndex_ + 1].heading, f );
+	this.curCamPath_.tilt = this.geHelpers_.interpolateTilt( this.campath[this.pathIndex_].tilt, this.campath[this.pathIndex_ + 1].tilt, f );
+	this.curCamPath_.altitude = this.geHelpers_.interpolateAlt( this.campath[this.pathIndex_].altitude, this.campath[this.pathIndex_ + 1].altitude, f );
+}
 
 
 /**
@@ -289,7 +273,8 @@ SYSimulator.prototype.syInterpolate_ = function(f)
  * @private
  */
 SYSimulator.prototype.tick_ = function() {
-  if (this.pathIndex_ >= this.carpath.length - 1) {
+   //overflow
+  if (this.pathIndex_ >= this.carpath.length - 1) {  //最后一个点无距离 distance = 0, duration = 0
     this.doTick_ = false;
     return;
   }
@@ -300,31 +285,28 @@ SYSimulator.prototype.tick_ = function() {
     if (this.options.on_changeStep)
       this.options.on_changeStep(this.currentStep_);
   }
-  
+  //car & camera
   // move up TICK_SIM_MS milliseconds
   this.segmentTime_ += SYSimulator.TICK_SIM_MS * this.options.speed / 1000.0;
-  var segmentDuration = this.carpath[this.pathIndex_].duration;
+  var segmentDuration = this.campath[this.pathIndex_].duration;
   
-  // move to next segment if we pass it in this tick
-  while (this.pathIndex_ < this.carpath.length - 1 &&
-    this.segmentTime_ >= segmentDuration) {
-    this.segmentTime_ -= segmentDuration;
-    // update new position in path array
-    this.pathIndex_++;
-    segmentDuration = this.carpath[this.pathIndex_].duration;
-  }
-  
-  if (this.pathIndex_ >= this.carpath.length - 1) {
-    this.doTick_ = false;
-    return;
-  }
-  
-  // update the current location
-  this.syInterpolate_(this.segmentTime_ / this.campath[this.pathIndex_].duration);
-  this.drive_();
-  
-  // fire the callback if one is provided
-  if (this.options.on_tick)
-    this.options.on_tick();
+  while (this.pathIndex_ < this.campath.length - 1 && this.segmentTime_ >= segmentDuration)
+    {
+		this.segmentTime_ -= segmentDuration;
+			
+		// update new position in path array
+		this.pathIndex_++;
+		if (this.pathIndex_ >= this.campath.length - 1) {
+			this.doTick_ = false;
+			return;
+		}
+		segmentDuration = this.campath[this.pathIndex_].duration;
+	}
+	
+    this.syInterpolate_(this.segmentTime_ / this.campath[this.pathIndex_].duration);   //campath 和 carpath的duration相等
+    this.drive_();
+   // fire the callback if one is provided
+   if (this.options.on_tick)
+     this.options.on_tick();
 }
  
