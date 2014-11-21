@@ -54,7 +54,8 @@ limitations under the License.
  
  //macro
  // remote address, the local doesn't work
- SYSimulator.MODEL_URL = 'https://github.com/zoominhao/3dsynopsis_js/blob/master/files/porsche.kmz?raw=true';  
+// SYSimulator.MODEL_URL = 'https://github.com/zoominhao/3dsynopsis_js/blob/master/files/porsche.kmz?raw=true';
+   SYSimulator.MODEL_URL = 'http://210.75.252.106:7080/svn/3DNAVI/model/porsche.kmz';
  SYSimulator.TICK_SIM_MS = 66;
  //public vars, for map locate
  SYSimulator.prototype.currentLoc = null;
