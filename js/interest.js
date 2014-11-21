@@ -41,6 +41,13 @@ var SY_path = []; // entire driving path
 var SY_conCarPath = [];
 var SY_conCamPath = [];
 
+/**
+ * The list of drive path vertices and their metadata for google drive
+ * @type {Array.<Object>}
+ */
+var SY_glCarPath = [];
+var SY_glCamPath = [];
+
 
 /**
  * The list of drive path vertices and their metadata for synopsis drive
@@ -157,6 +164,10 @@ function SY_directionsLoaded(directionResult) {
   loadSigLogo();
    //渲染路线
   loadPath();
+  //渲染smooth的路线
+  loadSmoothPath($('#mode').val());
+  
+  //loadFullSrcIcon();
 
   // build the left directions list
   SY_buildDirectionsList(directionResult);
@@ -210,6 +221,7 @@ function SY_buildPathStepArrays(directionResult) {
     }
   }
      SY_generateCon();
+	 SY_generateGL();
      SY_generateSY();
 }
 
@@ -352,7 +364,7 @@ function SY_generateCon() {
       SY_conCamPath.push({
         loc: curloc,   
 		heading: conHeading,
-		tilt: 80,
+		tilt: 70,
 		altitude: conAlt,
 		distance: SY_path[i].distance,
         duration: conDuration,
@@ -360,15 +372,61 @@ function SY_generateCon() {
    }
 }
 
+/**
+ * generate car path and camera trajectory for google speed mode
+ */
+function SY_generateGL() {
+    // begin processing the directions' steps and path
+   SY_glCarPath = [];
+   SY_glCamPath = [];
+   var pathLen = SY_path.length;
+   var glHeading;
+   var totalTime = $('#totaltime').val() * 3;
+   var glSpeed = SY_TotalDistance / totalTime;
+   var glDuration;
+   var glAlt;
+
+   for (var i = 0; i < pathLen; i++) {
+      if(SY_path[i].distance == 0 && i != pathLen - 1)
+	   continue;
+	  if(i < pathLen - 1)
+	  {
+	    glHeading = SY_geHelpers.getHeading(SY_path[i].loc, SY_path[i + 1].loc); 
+		glDuration = SY_path[i].distance / glSpeed;  
+		glAlt = Math.max(20.0, (SY_path[i].distance / SY_path[i].duration ) * 10);
+	  }
+	 
+      SY_glCarPath.push({ 
+	    loc: SY_path[i].loc,
+		step: SY_path[i].step,
+		distance: SY_path[i].distance,
+        duration: glDuration,
+		heading: glHeading
+      });  
+
+      SY_glCamPath.push({
+        loc: SY_path[i].loc,   
+		heading: glHeading,
+		tilt: 60,
+		altitude: glAlt,
+		distance: SY_path[i].distance,
+        duration: glDuration,
+      });
+   }
+}
+
+/**
+ * generate car path and camera trajectory for synopsis speed mode
+ */
 function SY_generateSY() {
    SY_syCarPath = [];
    SY_syCamPath = [];
-      var pathLen = SY_path.length;
-   var conHeading;
-   var conSpeed = 10;
-   var conDuration;
-   var conAlt;
-   var conDis;
+   /*var pathLen = SY_path.length;
+   var syHeading;
+   var sySpeed = 10;
+   var syDuration;
+   var syAlt;
+   var syDis;
    for (var i = 0; i < pathLen; i++) {
       if(SY_path[i].distance == 0 && i != pathLen - 1)
 	   continue;
@@ -396,7 +454,7 @@ function SY_generateSY() {
 		distance: SY_path[i].distance,
         duration: conDuration,
       });
-   }
+   }*/
   //update speed & update duration
  // conDis = conAlt/tan(SY_geHelpers.deg2rad(18 - nview.m_tilt));
   //smooth path

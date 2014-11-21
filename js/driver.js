@@ -52,10 +52,15 @@ function SY_controlSimulator(command, opt_cb) {
 	  }
 	  else if(mode == 2)
 	  {
+	     SY_CamPath = SY_glCamPath;
+		 SY_CarPath = SY_glCarPath;
+	  }
+	  else if(mode == 3)
+	  {
 	     SY_CamPath = SY_syCamPath;
 		 SY_CarPath = SY_syCarPath;
 	  }
-      SY_simulator = new SYSimulator(SY_ge, SY_CamPath, SY_CarPath, {
+      SY_simulator = new SYSimulator(SY_ge, SY_CamPath, SY_CarPath, mode, {
         // as the simulator runs, reposition the map on the right and the
         // car marker on the map, and update the status box on the bottom
         on_tick: function() {

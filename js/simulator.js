@@ -60,10 +60,11 @@ limitations under the License.
  SYSimulator.prototype.currentLoc = null;
  
  //class SYSimulator
- function SYSimulator(ge, campath, carpath, opt_opts) {
+ function SYSimulator(ge, campath, carpath, mode, opt_opts) {
   this.ge = ge;
   this.carpath = carpath;
   this.campath = campath;
+  this.mode = mode;
   this.options = opt_opts || {};
   if (!this.options.speed)
     this.options.speed = 1.0;         //倍率,可在外部调用DS_simulator.options.speed /= 2.0; 调整速度
@@ -187,7 +188,12 @@ SYSimulator.prototype.stop = function() {
  */
 SYSimulator.prototype.drive_ = function() {
   this.cardrive_();
-  this.camdrive_();
+  if(this.mode == 2) {
+    this.camdrive2_();
+  }
+  else{
+	this.camdrive_();
+  }
 }
 
 /**
@@ -233,6 +239,42 @@ SYSimulator.prototype.camdrive_ = function() {
 	sycamera.setAltitude(curAlt + (this.curCamAltitude_ - curAlt) * 0.2);
 
     this.ge.getView().setAbstractView(sycamera);
+}
+
+/**
+ * Position the camera at the given location, slowly turning to eventually face
+ * locFacing and zoom to an appropriate level for the current speed
+ * @private
+ */
+SYSimulator.prototype.camdrive2_ = function() {
+  
+    var curHeading;
+	var curTilt;
+	var curRange;
+    var syLa = this.ge.getView().copyAsLookAt(this.ge.ALTITUDE_RELATIVE_TO_GROUND);  //this.ge.ALTITUDE_RELATIVE_TO_GROUND);//this.ge.ALTITUDE_ABSOLUTE
+	if(this.pathIndex_ != 0)
+	{
+	   //Camera 可包含介于0度与360度之间的倾斜值。0度表示指定点的正下方；90度表示与水平线齐平；180度则表示正对天空。 
+		curHeading = syLa.getHeading();
+		curTilt = syLa.getTilt();
+		curRange = syLa.getRange();
+	}
+	else
+	{
+	    curHeading = this.campath[0].heading;
+		curTilt = this.campath[0].tilt;
+		curRange = this.campath[0].altitude;
+	}
+	
+	var la = this.ge.createLookAt('');
+    la.set(this.curCamLoc_.lat(), this.curCamLoc_.lng(),
+      0, // altitude   
+	  this.ge.ALTITUDE_RELATIVE_TO_GROUND,   //this.ge.ALTITUDE_RELATIVE_TO_GROUND,ALTITUDE_ABSOLUTE
+      curHeading + this.getHeadingMove_(curHeading, this.curCamHeading_),
+      curTilt + this.getTiltMove_(curTilt, this.curCamTilt_), // tilt
+      curRange + (this.curCamAltitude_ - curRange) * 0.1 // range (inverse of zoom)
+      );
+    this.ge.getView().setAbstractView(la);
 }
 
 /**
