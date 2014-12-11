@@ -114,8 +114,8 @@ limitations under the License.
 				heading: carHeading     
 			});
 
-			camAlt = Math.max(10.0, (info["distance"] / info["duration"] ) * 10) + info["altitude"];
-			camDis = -camAlt * 1.7;				
+			camAlt = Math.max(10.0, (info["distance"] / info["duration"] ) * 8) + info["altitude"];
+			camDis = -camAlt * 1.5;				
 		    curloc = SY_geHelpers.DestLoc(lastCamLoc, camDis, camHeading); //往后退	
 			camPath.push({
 				loc: curloc,
