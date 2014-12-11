@@ -1,0 +1,3 @@
+San Francisco, CA => Mountain View, CA
+San Francisco, CA => Berkeley
+Seattle => RedMond

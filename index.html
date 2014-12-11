@@ -13,6 +13,7 @@
   <script type="text/javascript" src="js/geplugin-helpers.js"></script>
   <script type="text/javascript" src="js/loadKml.js"></script>
   <script type="text/javascript" src="js/interest.js"></script>
+  <script type="text/javascript" src="js/iomanager.js"></script>
   <script type="text/javascript" src="js/driver.js"></script>
   <script type="text/javascript" src="js/simulator.js"></script>
   
@@ -50,7 +51,7 @@ google.setOnLoadCallback(SY_init);
               <font style="FONT-SIZE: 10pt; FONT-FAMILY: 华文行楷;" >From:</font><br/>
               <input type="text" id="from" value="San Francisco, CA"/><br/>
               <font style="FONT-SIZE: 10pt; FONT-FAMILY: 华文行楷;" >To:</font><br/>
-              <input type="text" id="to" value="Mountain View, CA"/><br/>
+              <input type="text" id="to" value="Berkeley"/><br/>
               <input type="image" src="images/search.png" onmousemove="this.src='images/search_over.png'" onmouseout="this.src='images/search.png'"  onclick="SY_Solve();" value="Solve!"/>
             </fieldset>
           </form>
@@ -68,7 +69,7 @@ google.setOnLoadCallback(SY_init);
 			  <option value ="3" title="optimized">SYNOPSIS</option>  
               </select> 
 			  <strong>Time: </strong>
-			  &nbsp <input type="number" id="totaltime" step="1" value="180" min="120" max="3600" name="total time"/>s
+			  &nbsp <input type="number" id="totaltime" step="1" value="1800" min="120" max="3600" name="total time"/>s
             </fieldset>
           </form>
         </td>
@@ -107,8 +108,5 @@ google.setOnLoadCallback(SY_init);
 </tr>
 </table>
 
-<div id="fullscreen" style="z-index: 99; position: absolute; top: 63px; margin-left: 68%">
- <img src="images/fullscr.gif" alt="resize" onclick="fullScreen();" />
- </div>
 </body>
 </html>

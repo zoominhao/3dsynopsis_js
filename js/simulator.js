@@ -54,8 +54,8 @@ limitations under the License.
  
  //macro
  // remote address, the local doesn't work
-// SYSimulator.MODEL_URL = 'https://github.com/zoominhao/3dsynopsis_js/blob/master/files/porsche.kmz?raw=true';
-   SYSimulator.MODEL_URL = 'http://210.75.252.106:7080/svn/3DNAVI/model/porsche.kmz';
+ SYSimulator.MODEL_URL = 'https://github.com/zoominhao/3dsynopsis_js/blob/master/files/porsche.kmz?raw=true';
+   //SYSimulator.MODEL_URL = 'http://210.75.252.106:7080/svn/3DNAVI/model/porsche.kmz';
  SYSimulator.TICK_SIM_MS = 66;
  //public vars, for map locate
  SYSimulator.prototype.currentLoc = null;
@@ -80,6 +80,7 @@ limitations under the License.
   this.segmentTime_ = 0;
   
   this.curCarHeading_ = this.carpath[0].heading;
+  this.curCarAltitude_ = this.carpath[0].altitude;
   this.curCamLoc_ = this.campath[0].loc;
   this.curCamHeading_ = this.campath[0].heading;
   this.curCamTilt_ = this.campath[0].tilt;
@@ -204,7 +205,7 @@ SYSimulator.prototype.drive_ = function() {
  */
 SYSimulator.prototype.cardrive_ = function() {
    
-  this.model.getLocation().setLatLngAlt(this.currentLoc.lat(), this.currentLoc.lng(), 0);
+  this.model.getLocation().setLatLngAlt(this.currentLoc.lat(), this.currentLoc.lng(), this.curCarAltitude_);
   this.model.getOrientation().setHeading(this.curCarHeading_);
 }
 
@@ -252,7 +253,7 @@ SYSimulator.prototype.camdrive2_ = function() {
     var curHeading;
 	var curTilt;
 	var curRange;
-    var syLa = this.ge.getView().copyAsLookAt(this.ge.ALTITUDE_RELATIVE_TO_GROUND);  //this.ge.ALTITUDE_RELATIVE_TO_GROUND);//this.ge.ALTITUDE_ABSOLUTE
+    var syLa = this.ge.getView().copyAsLookAt(this.ge.ALTITUDE_ABSOLUTE);  //this.ge.ALTITUDE_RELATIVE_TO_GROUND);//this.ge.ALTITUDE_ABSOLUTE
 	if(this.pathIndex_ != 0)
 	{
 	   //Camera 可包含介于0度与360度之间的倾斜值。0度表示指定点的正下方；90度表示与水平线齐平；180度则表示正对天空。 
@@ -266,15 +267,18 @@ SYSimulator.prototype.camdrive2_ = function() {
 		curTilt = this.campath[0].tilt;
 		curRange = this.campath[0].altitude;
 	}
-	
+	//if(this.pathIndex_ > 7)
+	//console.info(curRange+" "+this.curCamAltitude_);
 	var la = this.ge.createLookAt('');
     la.set(this.curCamLoc_.lat(), this.curCamLoc_.lng(),
       0, // altitude   
-	  this.ge.ALTITUDE_RELATIVE_TO_GROUND,   //this.ge.ALTITUDE_RELATIVE_TO_GROUND,ALTITUDE_ABSOLUTE
+	  this.ge.ALTITUDE_ABSOLUTE,   //this.ge.ALTITUDE_RELATIVE_TO_GROUND,ALTITUDE_ABSOLUTE
       curHeading + this.getHeadingMove_(curHeading, this.curCamHeading_),
       curTilt + this.getTiltMove_(curTilt, this.curCamTilt_), // tilt
       curRange + (this.curCamAltitude_ - curRange) * 0.1 // range (inverse of zoom)
       );
+	// if(this.pathIndex_ > 7)
+	//console.info(curRange);
     this.ge.getView().setAbstractView(la);
 }
 
@@ -291,6 +295,21 @@ SYSimulator.prototype.getHeadingMove_ = function(heading1, heading2) {
     return heading2 - heading1;
   
   return (this.geHelpers_.fixAngle(heading2 - heading1) < 0) ? -1 : 1;
+}
+
+/**
+ * Returns whether to turn left (-1) or right (1) to transition from a given
+ * heading/bearing to another
+ * @private
+ * @param {number} heading1 Current heading/bearing, in degrees
+ * @param {number} heading2 Desired heading/bearing, in degrees
+ */
+SYSimulator.prototype.getCarHeadingMove_ = function(heading1, heading2) {
+   //SYSimulator.TICK_SIM_MS 相关
+  if (Math.abs((heading1) - (heading2)) < 3)
+    return heading2 - heading1;
+  
+  return (this.geHelpers_.fixAngle(heading2 - heading1) < 0) ? -3 : 3;
 }
 
 /**
@@ -317,7 +336,8 @@ SYSimulator.prototype.syInterpolate_ = function(f)
 	 // update the current location
 	 // car
     this.currentLoc = this.geHelpers_.interpolateLoc( this.carpath[this.pathIndex_].loc, this.carpath[this.pathIndex_ + 1].loc, f);
-    this.curCarHeading_ = this.carpath[this.pathIndex_].heading;
+    this.curCarHeading_ = this.carpath[this.pathIndex_ + 1].heading;
+	this.curCarAltitude_ = this.carpath[this.pathIndex_].altitude;
 	//camera
     this.curCamLoc_ = this.geHelpers_.interpolateLoc( this.campath[this.pathIndex_].loc, this.campath[this.pathIndex_ + 1].loc, f);
     this.curCamHeading_ = this.geHelpers_.interpolateHeading( this.campath[this.pathIndex_].heading, this.campath[this.pathIndex_ + 1].heading, f );

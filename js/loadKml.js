@@ -43,27 +43,47 @@ function loadSigLogo() {
                 '</kml>';
   var logo = SY_ge.parseKml(logoKml);
   SY_ge.getFeatures().appendChild(logo);
-  google.earth.addEventListener(logo, 'click', function(){alert("haha");});
+ }
 
+ 
+ function loadSteps() {
+    // create the point placemarks for each step in the driving directions
+  for (var i = 0; i < SY_steps.length; i++) {
+    var step = SY_steps[i];
+    
+    var placemark = SY_geHelpers.createPointPlacemark(
+        step.loc, {description: step.desc, standardIcon: 'red-circle'});
+    
+    SY_placemarks['step-' + i] = placemark; 
+    
+    google.earth.addEventListener(placemark, 'click', function(event) {
+      // match up the placemark to its id in the dictionary to find out
+      // which step number it is
+      var id = '';
+      for (k in SY_placemarks)
+        if (SY_placemarks[k].equals(event.getTarget()))
+          id = k;
+      
+      var stepNum = parseInt(id.match(/step-(\d+)/)[1]);
+      
+      SY_flyToStep(stepNum);
+    });
+  }
  }
  
- function loadFullSrcIcon() {
-    //fullScreen Icon
-	var IconStringKml = '<Icon>\n'+
-	                    '<href>images/reset_over.png</href>\n'+
-						'<gx:x>0<gx:x/>\n'+
-						'<gx:y>0<gx:y/>\n'+
-						'<gx:w>138</gx:w>\n'+
-						'<gx:h>138</gx:h>\n'+
-						'</Icon>';
-	// create the route placemark from the LineString KML blob
-  var IconString = SY_ge.parseKml(IconStringKml);
-  
-  var IconPlacemark = SY_ge.createPlacemark('');
-  IconPlacemark.setGeometry(IconString);
- 
-  
-  SY_ge.getFeatures().appendChild(IconPlacemark);
+ function loadPoints(interval, mode) {
+ //<!-- kml:altitudeModeEnum: clampToGround, relativeToGround, or absolute -->
+        //<!-- or, substitute gx:altitudeMode: clampToSeaFloor, relativeToSeaFloor -->
+  if(mode == 1)
+	spath = SY_conCarPath;
+  else if(mode == 2)
+    spath = SY_glCarPath;
+  else if(mode == 3)
+    spath = SY_syCarPath;
+  for (var i = 0; i < spath.length; i+= interval) {
+    var placemark = SY_geHelpers.createPointPlacemark(
+        spath[i].loc, {description: i.toString() + "\n" + spath[i].heading, standardIcon: 'ball'});
+    } 
  }
  
  function loadPath() {
@@ -75,7 +95,7 @@ function loadSigLogo() {
   for (var i = 0; i < SY_path.length; i++)
     lineStringKml +=
         SY_path[i].loc.lng().toString() + ',' +
-        SY_path[i].loc.lat().toString() + ',1 \n' ;
+        SY_path[i].loc.lat().toString() + ', 1 \n' ;
   
   lineStringKml += '</coordinates></LineString>';
   
@@ -88,9 +108,10 @@ function loadSigLogo() {
   SY_placemarks['route'] = routePlacemark;
   
   routePlacemark.setStyleSelector(
-      SY_geHelpers.createLineStyle({width: 10, color: '88ff0000'}));
+      SY_geHelpers.createLineStyle({width: 10, color: '8800ff00'}));
   
   SY_ge.getFeatures().appendChild(routePlacemark);
+  
  }
  
  function loadSmoothPath(mode) {
@@ -100,15 +121,16 @@ function loadSigLogo() {
   var slineStringKml = '<LineString><altitudeMode>relativeToGround</altitudeMode><coordinates>\n';
   //https://developers.google.com/kml/documentation/kmlreference#linestring
   if(mode == 1)
-	spath = SY_conCamPath;
+	spath = SY_conCarPath;
   else if(mode == 2)
-    spath = SY_glCamPath;
+    spath = SY_glCarPath;
   else if(mode == 3)
-    spath = SY_syCamPath;
+    spath = SY_syCarPath;
   for (var i = 0; i < spath.length; i++)
     slineStringKml +=
         spath[i].loc.lng().toString() + ',' +
-        spath[i].loc.lat().toString() + ',6 \n' ;
+        spath[i].loc.lat().toString() + ',' +
+		spath[i].altitude.toString() + '\n' ;
   
   slineStringKml += '</coordinates></LineString>';
   
@@ -121,7 +143,7 @@ function loadSigLogo() {
   SY_placemarks['sroute'] = sroutePlacemark;
   
   sroutePlacemark.setStyleSelector(
-      SY_geHelpers.createLineStyle({width: 10, color: '8800ff00'}));
+      SY_geHelpers.createLineStyle({width: 10, color: '88ff0000'}));
   
   SY_ge.getFeatures().appendChild(sroutePlacemark);
  }

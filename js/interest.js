@@ -74,13 +74,15 @@ var SY_placemarks = {};
  
 //total distance
 var SY_TotalDistance; 
+var SY_TotalTime;
  /**
  * The callback for when the 'Go!' button is pressed. This uses the Maps API's
  * Directions class to get the route and pull out the individual route steps
  * into a path, which is rendered as a polyline.
  */
+
 function SY_Solve() {
-   SY_Request();
+     SY_Request();
 }
 
 function SY_Request() {
@@ -122,6 +124,7 @@ function SY_directionsLoaded(directionResult) {
   var startaddress = route.start_address;
   var endaddress = route.end_address;
   SY_TotalDistance = route.distance.value;
+  SY_TotalTime = route.duration.value;
   // build the path and step arrays from the google.maps.Directions route
   SY_buildPathStepArrays(directionResult);
   
@@ -132,42 +135,19 @@ function SY_directionsLoaded(directionResult) {
   // create the starting point placemark
   SY_placemarks['start'] = SY_geHelpers.createPointPlacemark(
       start,{description: startaddress, standardIcon: 'grn-diamond'});
-  
-  // create the point placemarks for each step in the driving directions
-  for (var i = 0; i < SY_steps.length; i++) {
-    var step = SY_steps[i];
-    
-    var placemark = SY_geHelpers.createPointPlacemark(
-        step.loc, {description: step.desc, standardIcon: 'red-circle'});
-    
-    SY_placemarks['step-' + i] = placemark; 
-    
-    google.earth.addEventListener(placemark, 'click', function(event) {
-      // match up the placemark to its id in the dictionary to find out
-      // which step number it is
-      var id = '';
-      for (k in SY_placemarks)
-        if (SY_placemarks[k].equals(event.getTarget()))
-          id = k;
-      
-      var stepNum = parseInt(id.match(/step-(\d+)/)[1]);
-      
-      SY_flyToStep(stepNum);
-    });
-  }
-  
+  loadSteps();
   // create the ending point placemark
   SY_placemarks['end'] = SY_geHelpers.createPointPlacemark(
       end,{description: endaddress, standardIcon: 'grn-diamond'});
   
    //load sig logo
   loadSigLogo();
-   //渲染路线
-  loadPath();
+   //渲染路线，最原始的路线
+  //loadPath();
   //渲染smooth的路线
-  loadSmoothPath($('#mode').val());
-  
-  //loadFullSrcIcon();
+  //loadSmoothPath($('#mode').val());
+  //渲染点
+  //loadPoints(3);
 
   // build the left directions list
   SY_buildDirectionsList(directionResult);
@@ -355,6 +335,7 @@ function SY_generateCon() {
 	 
       SY_conCarPath.push({ 
 	    loc: SY_path[i].loc,
+		altitude: 1,
 		step: SY_path[i].step,
 		distance: SY_path[i].distance,
         duration: conDuration,
@@ -365,7 +346,7 @@ function SY_generateCon() {
         loc: curloc,   
 		heading: conHeading,
 		tilt: 70,
-		altitude: conAlt,
+		altitude: conAlt + 1,
 		distance: SY_path[i].distance,
         duration: conDuration,
       });
@@ -382,7 +363,8 @@ function SY_generateGL() {
    var pathLen = SY_path.length;
    var glHeading;
    var totalTime = $('#totaltime').val() * 3;
-   var glSpeed = SY_TotalDistance / totalTime;
+   var gl_rate = SY_TotalTime / totalTime;
+   gl_rate = 1;
    var glDuration;
    var glAlt;
 
@@ -392,12 +374,13 @@ function SY_generateGL() {
 	  if(i < pathLen - 1)
 	  {
 	    glHeading = SY_geHelpers.getHeading(SY_path[i].loc, SY_path[i + 1].loc); 
-		glDuration = SY_path[i].distance / glSpeed;  
-		glAlt = Math.max(20.0, (SY_path[i].distance / SY_path[i].duration ) * 10);
+		glDuration = SY_path[i].duration * gl_rate;  
+		glAlt = Math.max(20.0, (SY_path[i].distance / SY_path[i].duration ) * 10 * gl_rate);
 	  }
 	 
       SY_glCarPath.push({ 
 	    loc: SY_path[i].loc,
+		altitude: 1,
 		step: SY_path[i].step,
 		distance: SY_path[i].distance,
         duration: glDuration,
@@ -421,43 +404,26 @@ function SY_generateGL() {
 function SY_generateSY() {
    SY_syCarPath = [];
    SY_syCamPath = [];
-   /*var pathLen = SY_path.length;
-   var syHeading;
-   var sySpeed = 10;
-   var syDuration;
-   var syAlt;
-   var syDis;
-   for (var i = 0; i < pathLen; i++) {
-      if(SY_path[i].distance == 0 && i != pathLen - 1)
-	   continue;
-	  if(i < pathLen - 1)
-	  {
-	    conHeading = SY_geHelpers.getHeading(SY_path[i].loc, SY_path[i + 1].loc); 
-		conDuration = SY_path[i].distance / conSpeed;  
-		conAlt = 10;
-		conDis = -20;
-	  }
-	  
-      SY_syCarPath.push({ 
-	    loc: SY_path[i].loc,
-		step: SY_path[i].step,
-		distance: SY_path[i].distance,
-        duration: conDuration,
-		heading: conHeading
-      });  
-	  var curloc = SY_geHelpers.DestLoc(SY_path[i].loc, conDis, conHeading); //往后退
-      SY_syCamPath.push({
-        loc: curloc,   
-		heading: conHeading,
-		tilt: 50,
-		altitude: conAlt,
-		distance: SY_path[i].distance,
-        duration: conDuration,
-      });
-   }*/
-  //update speed & update duration
- // conDis = conAlt/tan(SY_geHelpers.deg2rad(18 - nview.m_tilt));
-  //smooth path
-  
-  //cal trajectory
+   var pathLen = SY_path.length;
+   var totalTime = $('#totaltime').val() * 3;
+   var gl_rate = SY_TotalTime / totalTime;
+   gl_rate = 1;
+   //存取当前raw path
+   // Json_Res = [];
+   // for (var i = 0; i < SY_path.length; i++) {
+      // Json_Res.push({
+	    // x: SY_path[i].loc.lat(),
+		// y: SY_path[i].loc.lng(),
+	    // distance: SY_path[i].distance,
+		// duration: SY_path[i].duration * gl_rate,
+		// step: SY_path[i].step
+	  // });
+   // }
+   // writeRawPath( Json_Res );
+   
+   //读取外部处理结果，此处会循环等待
+   readSmoothedRes( SY_syCarPath, SY_syCamPath);
+   
+   
+   
 }

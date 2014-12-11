@@ -28,18 +28,15 @@ var SY_geHelpers;        //math tool for google earth&map
 var SY_map;              //instance of google map
 var SY_display;          //direction render on map
 var SY_directions;       //direction service
-
-var SY_elevations;
  
  function onresize() {
     var clientHeight = document.documentElement.clientHeight;
-    var clientWidth = document.documentElement.clientWidth;
+
     $('#earth, #map').each(function() {
       $(this).css({
         height: (clientHeight - $(this).position().top - 100).toString() + 'px' });      
     });
-	$('#earth').css({width: ((clientWidth - 250)*0.67).toString() + 'px' });
-	$('#map').css({width: ((clientWidth - 250)*0.33).toString() + 'px' });
+	
   }
   
 function initSuccess(pluginInstance){
@@ -83,7 +80,6 @@ function initSuccess(pluginInstance){
 	SY_display = new google.maps.DirectionsRenderer();
     SY_display.setMap(SY_map);
       
-	SY_elevations = new google.maps.ElevationService();
 	
     $('#directions-form input').removeAttr('disabled');
 }
@@ -92,26 +88,5 @@ function initFail(){
 	alert('Init Earth Fail!');
 }
 
-function fullScreen() {
-   var docElm = $('#earth').get(0); 
-	//W3C 
-	if (docElm.requestFullscreen) { 
-		docElm.requestFullscreen(); 
-	} 
-	//FireFox 
-	else if (docElm.mozRequestFullScreen) { 
-		docElm.mozRequestFullScreen(); 
-	} 
-	//Chrome等 
-	else if (docElm.webkitRequestFullScreen) { 
-		docElm.webkitRequestFullScreen(); 
-	} 
-	//IE11 
-	else if (docElm.msRequestFullscreen) { 
-		docElm.msRequestFullscreen(); 
-	} 
-
-	$('#earth').css({width: (document.documentElement.clientWidth).toString() + 'px' });
-}
 
 
